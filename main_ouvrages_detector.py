@@ -1,12 +1,22 @@
+import argparse
+
 from profile_analyzer_viz import ProfileAnalyzer
 from segments_constructor import SegmentConstructor
 from select_ouvrages import OuvragesSelector
 from draw_selected_profiles import DrawSelectedProfiles
 
 def main():
-    route = input("Saisir le code de la route (ex. A33): ")
+    parser = argparse.ArgumentParser(description="Détecteur d'ouvrages en terre")
+    parser.add_argument('--route', type=str, default=None, help='Code de la route (ex. A33)')
+    parser.add_argument('--output-dir', type=str, default=None, help='Dossier de sortie (défaut : output_<route>)')
+    args = parser.parse_args()
 
-    output_folder = f"output_{route}"
+    if args.route:
+        route = args.route
+    else:
+        route = input("Saisir le code de la route (ex. A33): ")
+
+    output_folder = args.output_dir if args.output_dir else f"output_{route}"
 
     classification_threshold_remblai = 2
     classification_threshold_deblai = -2
