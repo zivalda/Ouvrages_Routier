@@ -1,12 +1,26 @@
 import geopandas as gpd
 import os
 import pandas as pd
+import numpy as np
 from get_data_functions import get_ponts_from_geom
 from openpyxl.styles import Font,Alignment,PatternFill
 
 
 
 class OuvragesSelector:
+
+    # Natures BD TOPO (couche construction_lineaire) traitées comme de vrais
+    # ponts : leur emprise coupe réellement le terrain support, donc on les
+    # exclut du calcul de classification (comme les ponts de
+    # construction_surfacique).
+    NATURES_PONT_LINEAIRE = {"Pont", "Viaduc"}
+
+    # Un mur de soutènement est aussi exclu du calcul (une pente/hauteur de
+    # talus naturel n'a pas de sens sur un parement de mur), mais
+    # contrairement à un pont il correspond à un vrai ouvrage en terre :
+    # voir select_ouvrages() pour comment il est réintégré à l'inventaire.
+    NATURES_MUR_SOUTENEMENT = {"Mur de soutènement"}
+
     def __init__(self, ouvrages_gdf, output_folder, route_number, lines_selected):
         self.ouvrages_gdf = ouvrages_gdf
         self.route = lines_selected
@@ -15,7 +29,7 @@ class OuvragesSelector:
                 # géométrie globale de la route
         route_geom = self.ouvrages_gdf.unary_union
         self.ponts_gdf = get_ponts_from_geom(route_geom, "BDTOPO_V3:construction_surfacique")
-        self.ponts2_gdf = get_ponts_from_geom(route_geom, "BDTOPO_V3:construction_lineaire")
+        construction_lineaire_gdf = get_ponts_from_geom(route_geom, "BDTOPO_V3:construction_lineaire")
         self.rejected_ouvrages=[]
 
 
@@ -24,7 +38,34 @@ class OuvragesSelector:
 
         #  filtre spatial
         self.ponts_gdf = self.ponts_gdf[self.ponts_gdf.intersects(route_geom.buffer(buffer_distance))]
-        self.ponts2_gdf = self.ponts2_gdf[self.ponts2_gdf.intersects(route_geom.buffer(buffer_distance))]
+        construction_lineaire_gdf = construction_lineaire_gdf[
+            construction_lineaire_gdf.intersects(route_geom.buffer(buffer_distance))
+        ]
+
+        # construction_lineaire mélange ponts, murs anti-bruit et murs de
+        # soutènement (champ "nature") : on ne garde dans ponts2_gdf (utilisé
+        # pour supprimer les zones invalides comme un pont) que les vrais
+        # ponts. Les murs anti-bruit ne coupent pas le terrassement
+        # sous-jacent et ne sont plus exclus du tout. Les murs de
+        # soutènement sont gérés à part (cf. select_ouvrages).
+        self.ponts2_gdf = self._filter_by_nature(construction_lineaire_gdf, self.NATURES_PONT_LINEAIRE)
+        self.murs_soutenement_gdf = self._filter_by_nature(construction_lineaire_gdf, self.NATURES_MUR_SOUTENEMENT)
+        self.murs_antibruit_gdf = self._filter_by_nature(construction_lineaire_gdf, {"Mur anti-bruit"})
+
+    @staticmethod
+    def _filter_by_nature(gdf, natures):
+        if "nature" not in gdf.columns:
+            return gdf.iloc[0:0]
+        return gdf[gdf["nature"].isin(natures)]
+
+    @staticmethod
+    def _hauteur_centre_max_signee(series):
+        """Valeur signée de plus grande magnitude (garde le signe remblai/déblai
+        au lieu d'un simple max) ; NaN si le groupe n'a aucune valeur connue
+        (cas d'un mur de soutènement, dont la hauteur/pente n'est pas calculée)."""
+        if series.notna().any():
+            return series.loc[series.abs().idxmax()]
+        return np.nan
 
     def merge_close_segments(self, gdf):
             if len(gdf) <= 1:
@@ -62,7 +103,7 @@ class OuvragesSelector:
                             'hauteur_talus_max':intersecting['hauteur_talus_max'].max(),
                             'hauteur_talus_moyenne':intersecting['hauteur_talus_moyenne'].mean(),
                             #'hauteur_centre_max':intersecting['hauteur_centre_max'].max(),
-                            'hauteur_centre_max':intersecting.loc[intersecting['hauteur_centre_max'].abs().idxmax(),'hauteur_centre_max'],
+                            'hauteur_centre_max':self._hauteur_centre_max_signee(intersecting['hauteur_centre_max']),
                             'hauteur_centre_moyenne':intersecting['hauteur_centre_moyenne'].mean(),
                             'pente_max':intersecting['pente_max'].max(),
                             'pente_moyenne':intersecting['pente_moyenne'].mean(),
@@ -171,7 +212,10 @@ class OuvragesSelector:
         #selected_ouvrages=self.ouvrages_gdf[self.ouvrages_gdf['classification'].isin(['remblai','deblai'])]
         selected_ouvrages=self.ouvrages_gdf.copy()
 
-        # Remove all zones that overlap with bridges
+        # 1) Retrait des zones qui recoupent un vrai pont (construction_surfacique
+        #    + construction_lineaire filtrée sur nature in {"Pont","Viaduc"}) :
+        #    il n'y a pas de terrain support à cet endroit, l'ouvrage est
+        #    invalide -> on le supprime définitivement.
         selected_ouvrages.loc[:,'geometry']=selected_ouvrages['geometry'].apply(lambda x:self.remove_overlapping_zones(x,self.ponts_gdf))
 
         selected_ouvrages.loc[:,'geometry']=selected_ouvrages['geometry'].apply(lambda x:self.remove_overlapping_zones(x,self.ponts2_gdf))
@@ -194,6 +238,47 @@ class OuvragesSelector:
                     "raison_rejet":"supprime_par_pont"
 
                 })
+
+        # 2) Retrait des zones qui recoupent un mur de soutènement. Le calcul
+        #    de pente/hauteur (talus naturel supposé régulier) n'a pas de
+        #    sens sur un parement de mur, donc on l'exclut aussi du calcul de
+        #    classification. Mais contrairement à un pont, il y a bien un
+        #    ouvrage en terre à cet endroit : on garde la ligne d'origine
+        #    (avant ce retrait) pour la faire réapparaître plus bas dans
+        #    l'inventaire comme classification "mur de soutènement", au lieu
+        #    de la perdre silencieusement comme un pont.
+        avant_mur = selected_ouvrages.copy()
+        selected_ouvrages.loc[:,'geometry']=selected_ouvrages['geometry'].apply(lambda x:self.remove_overlapping_zones(x,self.murs_soutenement_gdf))
+
+        mur_rows=[]
+        for idx,row in selected_ouvrages.iterrows():
+
+            if row.geometry.is_empty and not avant_mur.loc[idx,'geometry'].is_empty:
+
+                self.rejected_ouvrages.append({
+
+                    "nom":row["nom"],
+
+                    "PR_start":row["PR_start"],
+
+                    "PR_end":row["PR_end"],
+
+                    "classification":row["classification"],
+
+                    "chaussee":row["chaussee"],
+
+                    "raison_rejet":"supprime_par_mur_soutenement"
+
+                })
+
+                mur_row = avant_mur.loc[idx].to_dict()
+                mur_row["classification"] = "mur de soutènement"
+                for col in ["hauteur_talus_max","hauteur_talus_moyenne","hauteur_centre_max",
+                            "hauteur_centre_moyenne","pente_max","pente_moyenne"]:
+                    if col in mur_row:
+                        mur_row[col] = np.nan
+                mur_rows.append(mur_row)
+
         selected_ouvrages=selected_ouvrages[~selected_ouvrages.is_empty]
 
         # Create separate GeoDataFrames
@@ -202,9 +287,14 @@ class OuvragesSelector:
         rasant=selected_ouvrages[selected_ouvrages['classification']=="rasant"]
         mixte = selected_ouvrages[selected_ouvrages['classification'] == "mixte"]
 
+        if mur_rows:
+            mur_soutenement = gpd.GeoDataFrame(pd.DataFrame(mur_rows), geometry='geometry', crs=selected_ouvrages.crs)
+        else:
+            mur_soutenement = selected_ouvrages.iloc[0:0].copy()
+
         merged_results=[]
 
-        for classe_gdf in [remblai,deblai,rasant,mixte]:
+        for classe_gdf in [remblai,deblai,rasant,mixte,mur_soutenement]:
 
             for chaussee in ["D","G"]:
 
@@ -242,8 +332,12 @@ class OuvragesSelector:
         ).reset_index(drop=True)
         
 
+        # Un mur de soutènement reste dans l'inventaire quelle que soit sa
+        # longueur : ce n'est pas un artefact de segmentation à filtrer,
+        # mais un ouvrage identifié comme tel sur le terrain.
         rejected_length=merged_ouvrages[
-            merged_ouvrages.geometry.length<=20
+            (merged_ouvrages.geometry.length<=20)
+            & (merged_ouvrages['classification']!="mur de soutènement")
         ]
 
         for _,row in rejected_length.iterrows():
@@ -265,7 +359,8 @@ class OuvragesSelector:
             })
 
         selected_ouvrages=merged_ouvrages[
-            merged_ouvrages.geometry.length>20
+            (merged_ouvrages.geometry.length>20)
+            | (merged_ouvrages['classification']=="mur de soutènement")
         ].copy()
 
         selected_ouvrages["PR_num"]=selected_ouvrages["PR_start"].astype(str).str.extract(r'PR(\d+)')[0].astype(int)
@@ -465,6 +560,7 @@ class OuvragesSelector:
                 "deblai": PatternFill(start_color="BDD7EE", end_color="BDD7EE", fill_type="solid"),
                 "rasant": PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
                 "mixte":PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+                "mur de soutènement": PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"),
             }
 
             classification_col = None
@@ -553,3 +649,22 @@ class OuvragesSelector:
             ),
             driver='GPKG'
         )
+
+        # Sauvegarde des murs (traçabilité / audit), s'il y en a sur la route
+        if not self.murs_soutenement_gdf.empty:
+            self.murs_soutenement_gdf.to_file(
+                os.path.join(
+                    self.output_folder,
+                    "murs_soutenement.gpkg"
+                ),
+                driver='GPKG'
+            )
+
+        if not self.murs_antibruit_gdf.empty:
+            self.murs_antibruit_gdf.to_file(
+                os.path.join(
+                    self.output_folder,
+                    "murs_antibruit.gpkg"
+                ),
+                driver='GPKG'
+            )

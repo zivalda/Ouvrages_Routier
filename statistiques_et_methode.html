@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A31 : Comment on classe les ouvrages en terre</title>
+<style>
+:root {
+  --ink: #1a2330;
+  --muted: #5a6570;
+  --navy: #1f4e79;
+  --line: #dde3ea;
+  --rem: #C6EFCE; --rem-ink: #1b5e20;
+  --deb: #BDD7EE; --deb-ink: #0d47a1;
+  --ras: #FFF2CC; --ras-ink: #6d5300;
+  --mix: #F8D0D4; --mix-ink: #8e1b1b;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; background: #eef2f6; color: var(--ink);
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+}
+header {
+  background: #1f4e79; color: #fff; padding: 28px 32px 24px;
+}
+header h1 { margin: 0 0 6px; font-size: 28px; }
+header p { margin: 0; color: #d5e4f2; font-size: 17px; max-width: 740px; }
+main { max-width: 980px; margin: 0 auto; padding: 28px 20px 72px; }
+section {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 26px 30px 28px; margin: 0 0 18px;
+}
+h2 { margin: 0 0 6px; font-size: 22px; color: var(--navy); }
+.why {
+  background: #eef4fa; border-left: 4px solid var(--navy);
+  padding: 10px 14px; margin: 10px 0 16px; font-size: 16px;
+}
+p { font-size: 16px; line-height: 1.45; margin: 0 0 10px; }
+figure { margin: 12px 0 0; }
+figure svg { width: 100%; height: auto; display: block; border-radius: 8px; }
+figcaption { text-align: center; color: var(--muted); font-size: 14px; margin-top: 8px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+.tag {
+  display: inline-block; font-weight: 700; font-size: 13px;
+  padding: 2px 8px; border-radius: 4px;
+}
+.tag.rem { background: var(--rem); color: var(--rem-ink); }
+.tag.deb { background: var(--deb); color: var(--deb-ink); }
+.tag.mix { background: var(--mix); color: var(--mix-ink); }
+.tag.ras { background: var(--ras); color: var(--ras-ink); }
+.cell p { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #e8eef4; color: var(--navy); }
+.tabs { display: flex; gap: 8px; margin-top: 18px; }
+.tabs button {
+  background: transparent; color: #d5e4f2; border: 1px solid #6f93b3;
+  border-radius: 8px; padding: 8px 16px; font: inherit; font-weight: 700;
+  cursor: pointer;
+}
+.tabs button.on { background: #fff; color: #1f4e79; border-color: #fff; }
+.panel { display: none; }
+.panel.on { display: block; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0 0 18px; }
+@media (max-width: 720px) { .kpis { grid-template-columns: 1fr 1fr; } }
+.kpi { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.kpi b { display: block; font-size: 28px; color: var(--navy); line-height: 1.1; }
+.kpi span { color: var(--muted); font-size: 14px; }
+.dept { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+@media (max-width: 720px) { .dept { grid-template-columns: 1fr; } }
+.barrow { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; }
+.barrow label { width: 72px; flex-shrink: 0; }
+.track { flex: 1; background: #eef2f6; height: 16px; border-radius: 3px; overflow: hidden; }
+.bar { height: 16px; }
+.barrow em { font-style: normal; color: var(--muted); width: 90px; }
+td.num { text-align: right; white-space: nowrap; }
+.seuil {
+  background: #fff8e6; border: 1px solid #e6d39a; border-radius: 8px;
+  padding: 10px 14px; margin-top: 12px; font-size: 15px;
+}
+.seuil b { color: #6d5300; }
+table.hyps { font-size: 14px; }
+table.hyps th:first-child, table.hyps td:first-child { white-space: nowrap; width: 3.2em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Comment on classe les ouvrages en terre</h1>
+  <p>Autoroute A31. Une coupe du terrain, deux talus au bord de la chaussée, une classe. Destiné à la lecture du livrable, pas au détail du code.</p>
+  <nav class="tabs">
+    <button type="button" class="on" data-tab="methode">Méthode</button>
+    <button type="button" data-tab="stats">Statistiques 54 et 57</button>
+  </nav>
+</header>
+<main>
+
+<div id="methode" class="panel on">
+
+<section>
+  <h2>1. Une ligne = un tronçon homogène</h2>
+  <p class="why">On veut un inventaire qu’un exploitant peut lire. Pas une ligne tous les 10 m, pas une ligne par chaussée.</p>
+  <p class="seuil"><b>H1, H2.</b> Source : selected_ouvrages (Excel + GPKG). Une ligne = une section physique. D et G fusionnés. Un désaccord D/G n’est jamais un mixte.</p>
+</section>
+
+<section>
+  <h2>2. On classe les bords, pas le milieu de la route</h2>
+  <p class="why">La question est : de chaque côté, la route est-elle plus haute ou plus basse que le terrain au pied du talus ?</p>
+  <figure>
+    <svg viewBox="0 0 800 310" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+      <rect width="800" height="310" fill="#f4f7fa"/>
+      <!-- TN + remblais -->
+      <path d="M30,250 L140,250 L210,150 L590,150 L660,250 L770,250 L770,290 L30,290 Z"
+            fill="#e2d3b6" stroke="#8a7a5e" stroke-width="1.6"/>
+      <path d="M140,250 L210,150 L280,150 L280,250 Z" fill="#C6EFCE" opacity=".95"/>
+      <path d="M520,150 L590,150 L660,250 L520,250 Z" fill="#C6EFCE" opacity=".95"/>
+      <!-- plateforme -->
+      <rect x="210" y="142" width="380" height="16" fill="#5f6870"/>
+      <line x1="400" y1="146" x2="400" y2="154" stroke="#fff" stroke-width="2"/>
+      <line x1="250" y1="150" x2="550" y2="150" stroke="#fff" stroke-width="1" stroke-dasharray="8 10" opacity=".5"/>
+      <!-- H gauche -->
+      <line x1="175" y1="150" x2="175" y2="250" stroke="#1f4e79" stroke-width="2"/>
+      <polygon points="175,150 170,160 180,160" fill="#1f4e79"/>
+      <polygon points="175,250 170,240 180,240" fill="#1f4e79"/>
+      <text x="86" y="204" font-size="15" fill="#1f4e79" font-weight="700">H</text>
+      <!-- labels -->
+      <text x="318" y="132" font-size="14" fill="#1a2330" font-weight="700">Plateforme A31 (les deux voies)</text>
+      <text x="372" y="118" font-size="12" fill="#5a6570">point 60 = milieu de chaussée</text>
+      <text x="48" y="272" font-size="13" fill="#5a6570">terrain naturel</text>
+      <text x="148" y="268" font-size="13" fill="#1b5e20" font-weight="700">talus</text>
+      <text x="600" y="268" font-size="13" fill="#1b5e20" font-weight="700">talus</text>
+      <text x="30" y="24" font-size="13" fill="#5a6570">Gauche</text>
+      <text x="740" y="24" font-size="13" fill="#5a6570">Droite</text>
+      <text x="30" y="44" font-size="15" fill="#1a2330">H = altitude de la plateforme - altitude du terrain au pied du talus</text>
+      <text x="30" y="64" font-size="14" fill="#1b5e20">H positif = remblai (la route est au-dessus du terrain)</text>
+    </svg>
+    <figcaption>Le milieu (point 60) sert à poser la plateforme. Il ne donne pas la classe.</figcaption>
+  </figure>
+  <p>On n’utilise pas la droite qui relie les deux extrémités du dessin. Cette droite mélange le haut et le bas du terrain. Elle sous-estime la hauteur réelle.</p>
+  <p class="seuil"><b>H12, H16.</b> Coupe tous les 10 m. Plateforme : plus ou moins 22 m du centre. H = altitude plateforme - altitude du pied de talus (lue à la verticale). Lissage du profil : altitude typique sur 5 m. Pente du talus lue sur 3 m. Trou dans la plateforme ignoré jusqu’à 3 m.</p>
+</section>
+
+<section>
+  <h2>3. Quatre formes, lues sur les deux talus</h2>
+  <p class="why">Mixte = un côté remblai et l’autre déblai, sur la même coupe. Ce n’est pas « un peu des deux » au milieu de la route.</p>
+  <div class="grid">
+    <div class="cell">
+      <span class="tag rem">remblai</span>
+      <p>Les deux bords : la route est plus haute que le terrain. On a apporté des terres.</p>
+      <figure>
+        <svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+          <rect width="360" height="180" fill="#f4f7fa"/>
+          <path d="M16,150 L70,150 L110,88 L250,88 L290,150 L344,150 L344,170 L16,170 Z" fill="#e2d3b6" stroke="#8a7a5e" stroke-width="1.4"/>
+          <path d="M70,150 L110,88 L140,88 L140,150 Z" fill="#C6EFCE"/>
+          <path d="M220,88 L250,88 L290,150 L220,150 Z" fill="#C6EFCE"/>
+          <rect x="110" y="82" width="140" height="12" fill="#5f6870"/>
+          <text x="132" y="74" font-size="12" fill="#1b5e20" font-weight="700">route au-dessus</text>
+        </svg>
+      </figure>
+    </div>
+    <div class="cell">
+      <span class="tag deb">déblai</span>
+      <p>Les deux bords : la route est plus basse que le terrain. On a entaillé le pays.</p>
+      <figure>
+        <svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+          <rect width="360" height="180" fill="#f4f7fa"/>
+          <path d="M16,70 L70,70 L110,132 L250,132 L290,70 L344,70 L344,170 L16,170 Z" fill="#e2d3b6" stroke="#8a7a5e" stroke-width="1.4"/>
+          <path d="M70,70 L110,132 L140,132 L140,70 Z" fill="#BDD7EE"/>
+          <path d="M220,132 L250,132 L290,70 L220,70 Z" fill="#BDD7EE"/>
+          <rect x="110" y="126" width="140" height="12" fill="#5f6870"/>
+          <text x="128" y="118" font-size="12" fill="#0d47a1" font-weight="700">route en dessous</text>
+        </svg>
+      </figure>
+    </div>
+    <div class="cell">
+      <span class="tag mix">mixte</span>
+      <p>Un bord en déblai (terrain plus haut), l’autre en remblai (terrain plus bas). Route à flanc de colline.</p>
+      <figure>
+        <svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+          <rect width="360" height="180" fill="#f4f7fa"/>
+          <!-- terrain plus haut à gauche, plus bas à droite -->
+          <path d="M16,40 L90,40 L130,110 L240,110 L300,155 L344,155 L344,170 L16,170 Z"
+                fill="#e2d3b6" stroke="#8a7a5e" stroke-width="1.4"/>
+          <path d="M90,40 L130,110 L160,110 L160,40 Z" fill="#BDD7EE"/>
+          <path d="M210,110 L240,110 L300,155 L210,155 Z" fill="#C6EFCE"/>
+          <rect x="130" y="104" width="110" height="12" fill="#5f6870"/>
+          <line x1="110" y1="48" x2="110" y2="110" stroke="#0d47a1" stroke-width="1.6"/>
+          <text x="20" y="82" font-size="11" fill="#0d47a1" font-weight="700">H -</text>
+          <line x1="270" y1="110" x2="270" y2="155" stroke="#1b5e20" stroke-width="1.6"/>
+          <text x="276" y="136" font-size="11" fill="#1b5e20" font-weight="700">H +</text>
+          <text x="28" y="32" font-size="12" fill="#0d47a1" font-weight="700">déblai</text>
+          <text x="232" y="172" font-size="12" fill="#1b5e20" font-weight="700">remblai</text>
+        </svg>
+      </figure>
+    </div>
+    <div class="cell">
+      <span class="tag ras">rasant</span>
+      <p>Ni un bord ni l’autre n’a 2 m de dénivelé. La route suit le terrain.</p>
+      <figure>
+        <svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+          <rect width="360" height="180" fill="#f4f7fa"/>
+          <path d="M16,120 L110,108 L250,112 L344,118 L344,170 L16,170 Z" fill="#e2d3b6" stroke="#8a7a5e" stroke-width="1.4"/>
+          <rect x="110" y="102" width="140" height="12" fill="#5f6870"/>
+          <text x="140" y="92" font-size="12" fill="#6d5300" font-weight="700">presque à niveau</text>
+        </svg>
+      </figure>
+    </div>
+  </div>
+  <p style="margin-top:14px">Un seul côté en ouvrage et l’autre plat : on garde cet ouvrage (pas un mixte).</p>
+  <p class="seuil"><b>H3, H4, H17.</b> Talus OET si |H| d’au moins 2 m. Mixte si un bord d’au moins +2 m et l’autre d’au plus -2 m. Si le terrain latéral penche déjà d’au moins 5 %, le seuil passe à 1 m. Fusion D/G : rasant contre OET → OET ; remblai contre déblai → le côté au |H| le plus grand (jamais un mixte D vs G).</p>
+</section>
+
+<section>
+  <h2>4. Trois choses qu’on ne prend pas pour un talus</h2>
+  <div class="grid">
+    <div>
+      <p><b>Le terre-plein</b> entre les deux chaussées n’est pas un ouvrage. La plateforme, c’est les deux voies ensemble.</p>
+    </div>
+    <div>
+      <p><b>Une autre route</b> collée à l’A31 (bretelle, voie parallèle) n’est pas le talus. Le talus est au-delà.</p>
+    </div>
+  </div>
+  <figure>
+    <svg viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+      <rect width="800" height="210" fill="#f4f7fa"/>
+      <path d="M20,160 L80,160 L140,95 L430,95 L500,95 L560,95 L640,150 L780,150 L780,200 L20,200 Z"
+            fill="#e2d3b6" stroke="#8a7a5e" stroke-width="1.4"/>
+      <rect x="140" y="88" width="290" height="14" fill="#5f6870"/>
+      <text x="230" y="80" font-size="13" fill="#1a2330" font-weight="700">A31</text>
+      <rect x="500" y="88" width="70" height="12" fill="#9aa3ab"/>
+      <text x="505" y="80" font-size="12" fill="#5a6570">autre route</text>
+      <path d="M570,95 L640,150" stroke="#6a1b9a" stroke-width="4"/>
+      <text x="650" y="130" font-size="13" fill="#6a1b9a" font-weight="700">vrai talus</text>
+      <path d="M250,102 L268,118 L250,118 Z" fill="#F8D0D4"/>
+      <text x="155" y="175" font-size="13" fill="#8e1b1b">escalier central : ignoré</text>
+    </svg>
+    <figcaption>On saute le terre-plein et la voie parallèle. On mesure le talus externe de l’A31.</figcaption>
+  </figure>
+  <p><b>Une pente qui continue.</b> Un talus d’ouvrage s’arrête : juste après, le terrain redevient plat, ou la pente change nettement. Si la même pente continue loin de la route, c’est le terrain naturel, pas un ouvrage. S’il y a quand même un vrai talus (une rupture au bord), on mesure la hauteur par rapport à ce terrain en pente, pas par rapport au point le plus bas du dessin.</p>
+  <p class="seuil"><b>H12, H15, H19.</b> Terre-plein interne ignoré (dénivelé jusqu’à 4,5 m, largeur jusqu’à 20 m). Pente lointaine d’au moins 5 % = terrain naturel qui continue ; rupture de talus si la pente au bord est plus raide d’environ 8 %. Route parallèle : largeur d’au moins 10 m, profil lu sur plus ou moins 90 m, talus au-delà de cette voie.</p>
+</section>
+
+<section>
+  <h2>5. Pourquoi on lisse (sans entrer dans le détail)</h2>
+  <p class="why">Le MNT est bruité. Un pic d’un mètre n’est pas un talus. Un bout de 40 m n’est pas un ouvrage.</p>
+  <div class="grid">
+    <div>
+      <p><b>Sur la coupe :</b> on prend l’altitude typique sur quelques mètres, pour qu’un artefact MNT (arbre, pixel) ne coupe pas la plateforme.</p>
+      <figure>
+        <svg viewBox="0 0 360 150" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+          <rect width="360" height="150" fill="#f4f7fa"/>
+          <polyline points="20,90 80,88 120,86 150,40 180,86 240,88 340,90" fill="none" stroke="#c62828" stroke-width="2"/>
+          <polyline points="20,90 340,88" fill="none" stroke="#1f4e79" stroke-width="3"/>
+          <text x="128" y="30" font-size="12" fill="#c62828">bruit</text>
+          <text x="200" y="80" font-size="12" fill="#1f4e79" font-weight="700">forme retenue</text>
+        </svg>
+      </figure>
+    </div>
+    <div>
+      <p><b>Le long de l’autoroute :</b> on ne crée un nouvel ouvrage que s’il tient sur plusieurs coupes d’affilée. Sinon c’est du scintillement, pas un ouvrage.</p>
+      <figure>
+        <svg viewBox="0 0 360 150" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+          <rect width="360" height="150" fill="#f4f7fa"/>
+          <rect x="16" y="50" width="50" height="28" fill="#BDD7EE"/>
+          <rect x="66" y="50" width="22" height="28" fill="#C6EFCE"/>
+          <rect x="88" y="50" width="50" height="28" fill="#BDD7EE"/>
+          <rect x="138" y="50" width="22" height="28" fill="#FFF2CC"/>
+          <rect x="160" y="50" width="90" height="28" fill="#BDD7EE"/>
+          <text x="16" y="40" font-size="12" fill="#c62828">brut : damier</text>
+          <rect x="16" y="100" width="234" height="28" fill="#BDD7EE" stroke="#0d47a1"/>
+          <text x="16" y="92" font-size="12" fill="#1f4e79" font-weight="700">retenu : un déblai</text>
+        </svg>
+      </figure>
+    </div>
+  </div>
+  <p class="seuil"><b>H12, H13, H20.</b> Sur la coupe : lissage 5 m. Le long de la route : hauteurs lissées sur 90 m (9 profils de 10 m) avant d’ouvrir un nouvel OET. Puis toute la queue déjà du type de l’OET suivant (profils bruts qui se suivent) est rattachée à cet OET : 20 m minimum, 200 m maximum, il doit rester au moins 40 m à l’OET précédent.</p>
+</section>
+
+<section>
+  <h2>6. Les petits bouts qui ne sont pas des ouvrages</h2>
+  <p class="why">Un îlot court coincé entre deux mêmes classes est une erreur de détection. On le rattache au voisin.</p>
+  <figure>
+    <svg viewBox="0 0 800 150" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">
+      <rect width="800" height="150" fill="#f4f7fa"/>
+      <text x="24" y="28" font-size="14" fill="#5a6570">Avant</text>
+      <rect x="24" y="40" width="220" height="36" fill="#C6EFCE" stroke="#1b5e20"/>
+      <rect x="244" y="40" width="80" height="36" fill="#FFF2CC" stroke="#6d5300"/>
+      <rect x="324" y="40" width="220" height="36" fill="#C6EFCE" stroke="#1b5e20"/>
+      <text x="90" y="63" font-size="13">remblai</text>
+      <text x="258" y="63" font-size="12">80 m</text>
+      <text x="390" y="63" font-size="13">remblai</text>
+      <text x="24" y="100" font-size="14" fill="#5a6570">Livrable</text>
+      <rect x="24" y="108" width="520" height="28" fill="#C6EFCE" stroke="#1b5e20"/>
+      <text x="210" y="127" font-size="14">un seul remblai</text>
+    </svg>
+    <figcaption>Idem pour un bout de rasant collé à un pont : on le rend à l’ouvrage voisin. Le pont, lui, ne bouge pas.</figcaption>
+  </figure>
+  <p class="seuil"><b>H5 à H11, H14, H18.</b> Pont : emprise BD TOPO + 15 m, jamais traversé. Trou sans donnée : fusionné jusqu’à 100 m. Sandwich : îlot jusqu’à 250 m (400 m si rasant) entre deux voisins identiques plus longs. Frontière : îlot jusqu’à 80 m, ou rasant jusqu’à 200 m, donné au voisin le plus long. OET faible : moins de 150 m et |H| moins de 3,5 m. Miette collée à un pont : moins de 40 m. Rasant court contre un OET (y compris contre un pont) : rattaché à l’OET. |H| au-dessus de 30 m = artefact MNT. Mur : colonne D, G ou D et G, la classe reste le terrain.</p>
+</section>
+
+<section>
+  <h2>7. Hypothèses H1 à H20 : condition et seuil</h2>
+  <p class="why">Ce sont les règles du livrable v10. Chaque ligne a son seuil, ou « sans seuil » si c’est une règle de principe.</p>
+  <table class="hyps">
+    <tr><th>H</th><th>Condition</th><th>Seuil</th></tr>
+    <tr><td>H1</td><td>Source de l’inventaire</td><td>selected_ouvrages.xlsx (classe, PR, longueurs, hauteurs) ; GPKG seulement pour les talus gauche/droite</td></tr>
+    <tr><td>H2</td><td>Une ligne = une section physique</td><td>D et G fusionnés. Un désaccord D/G n’est pas un mixte</td></tr>
+    <tr><td>H3</td><td>Classe lue sur les talus externes</td><td>|H| d’au moins 2 m. Mixte : +2 m d’un bord et -2 m de l’autre. Plateforme : les deux voies (plus ou moins 22 m du centre). Unilatéral : un bord OET, l’autre plat → on garde l’OET</td></tr>
+    <tr><td>H4</td><td>Fusion D et G à la même abscisse</td><td>Même classe → cette classe. Mur d’un seul côté → classe de l’autre. Rasant contre OET → OET. Remblai contre déblai → le |H| le plus grand. Jamais un mixte D vs G</td></tr>
+    <tr><td>H5</td><td>Pont</td><td>Emprise BD TOPO projetée + 15 m. Classe pont, sans hauteur. Aucune fusion ne traverse un pont. On ne classe pas le tablier</td></tr>
+    <tr><td>H6</td><td>Trou sans donnée D ni G</td><td>Jusqu’à 100 m : fusionné (trou inclus). Plus long : coupure</td></tr>
+    <tr><td>H7</td><td>Sandwich (îlot entre deux jumeaux)</td><td>Îlot jusqu’à 250 m (400 m si rasant). Chaque voisin au moins aussi long que l’îlot. Pont et mur des deux côtés : jamais absorbés</td></tr>
+    <tr><td>H8</td><td>Frontière (pas un ouvrage)</td><td>Îlot jusqu’à 80 m, ou rasant jusqu’à 200 m, entre deux classes différentes → voisin le plus long. Un OET long et haut est conservé</td></tr>
+    <tr><td>H9</td><td>Mur de soutènement</td><td>La classe affichée reste le terrain. Colonne Mur : D, G, ou D et G</td></tr>
+    <tr><td>H10</td><td>Hauteur affichée</td><td>|H| au-dessus de 30 m = artefact, remplacé par la moyenne. Rasant : H entre 0 et 2 m (centre vs terrain). OET : H de talus. Mixte : H remblai et H déblai signés</td></tr>
+    <tr><td>H11</td><td>H max après absorption</td><td>Mesurée seulement sur les mètres de la classe affichée. Un rasant n’hérite pas des 8 m d’un petit remblai avalé</td></tr>
+    <tr><td>H12</td><td>Plateforme et talus</td><td>Coupe tous les 10 m. Lissage 5 m. Trou de plateforme ignoré jusqu’à 3 m. Terre-plein interne ignoré (jusqu’à 4,5 m de dénivelé, 20 m de large). Pente du talus lue sur 3 m</td></tr>
+    <tr><td>H13</td><td>Cohérence le long de la route</td><td>Hauteurs lissées sur 90 m. Îlot rasant jusqu’à 200 m, ou OET faible (moins de 150 m et |H| moins de 3,5 m) → bruit, pas un ouvrage</td></tr>
+    <tr><td>H14</td><td>Miette collée à un pont</td><td>Moins de 40 m → recollée au voisin terre. Trou court entre deux ponts → pont</td></tr>
+    <tr><td>H15</td><td>Talus vs pente du terrain</td><td>Talus : rupture au bord qui s’arrête. Pente lointaine d’au moins 5 % = terrain naturel. Rupture si le talus est plus raide d’environ 8 %</td></tr>
+    <tr><td>H16</td><td>Comment on lit H</td><td>H = altitude plateforme - altitude du pied (verticale). Pas la droite des deux extrémités du profil</td></tr>
+    <tr><td>H17</td><td>OET léger sur terrain déjà en pente</td><td>Si la pente latérale est d’au moins 5 %, seuil |H| = 1 m (au lieu de 2 m)</td></tr>
+    <tr><td>H18</td><td>Talus ambigu, on croit le voisin</td><td>Rasant jusqu’à 200 m collé à un OET (y compris contre un pont) → classe de l’OET</td></tr>
+    <tr><td>H19</td><td>Route parallèle ou bretelle</td><td>Profil lu sur plus ou moins 90 m. Voie latérale d’au moins 10 m : ce n’est pas le talus. Talus au-delà. H = A31 vs pied du talus</td></tr>
+    <tr><td>H20</td><td>Queue déjà du type de l’OET suivant</td><td>Profils bruts consécutifs (3, 4, 5, 6…). Déplacement d’au moins 20 m, au plus 200 m. Il reste au moins 40 m à l’OET précédent</td></tr>
+  </table>
+</section>
+
+</div>
+
+<div id="stats" class="panel">
+<section>
+  <h2>Inventaire v10, A31</h2>
+  <p class="why">OET = remblai + déblai + mixte. Les ponts et les rasants sont dans le tableau, mais ce ne sont pas des ouvrages en terre.</p>
+  <div class="kpis">
+    <div class="kpi"><b>206</b><span>OET (54 + 57)</span></div>
+    <div class="kpi"><b>132</b><span>ponts</span></div>
+    <div class="kpi"><b>379</b><span>lignes au livrable</span></div>
+    <div class="kpi"><b>90 km</b><span>linéaire classé</span></div>
+  </div>
+  <div class="dept">
+    <div>
+      <h2>54 (Meurthe-et-Moselle)</h2>
+      <p>PR 259+000 à 284+440 · 25 km · 46 OET</p>
+      <div class="barrow"><label>remblai</label><div class="track"><div class="bar" style="width:100%;background:#C6EFCE"></div></div><em>25 · 13,3 km</em></div>
+      <div class="barrow"><label>déblai</label><div class="track"><div class="bar" style="width:48%;background:#BDD7EE"></div></div><em>12 · 5,3 km</em></div>
+      <div class="barrow"><label>mixte</label><div class="track"><div class="bar" style="width:36%;background:#F8D0D4"></div></div><em>9 · 2,3 km</em></div>
+      <div class="barrow"><label>rasant</label><div class="track"><div class="bar" style="width:24%;background:#FFF2CC"></div></div><em>6 · 3,0 km</em></div>
+      <div class="barrow"><label>pont</label><div class="track"><div class="bar" style="width:92%;background:#E2D5F1"></div></div><em>23 · 1,6 km</em></div>
+      <div class="barrow"><label>mur</label><div class="track"><div class="bar" style="width:8%;background:#D9D9D9"></div></div><em>1 · 20 m</em></div>
+    </div>
+    <div>
+      <h2>57 (Moselle)</h2>
+      <p>PR 284+500 à 348+986 · 64 km · 160 OET</p>
+      <div class="barrow"><label>remblai</label><div class="track"><div class="bar" style="width:77%;background:#C6EFCE"></div></div><em>84 · 22,3 km</em></div>
+      <div class="barrow"><label>déblai</label><div class="track"><div class="bar" style="width:63%;background:#BDD7EE"></div></div><em>69 · 19,8 km</em></div>
+      <div class="barrow"><label>mixte</label><div class="track"><div class="bar" style="width:6%;background:#F8D0D4"></div></div><em>7 · 1,5 km</em></div>
+      <div class="barrow"><label>rasant</label><div class="track"><div class="bar" style="width:31%;background:#FFF2CC"></div></div><em>34 · 13,8 km</em></div>
+      <div class="barrow"><label>pont</label><div class="track"><div class="bar" style="width:100%;background:#E2D5F1"></div></div><em>109 · 7,0 km</em></div>
+      <div class="barrow"><label>mur</label><div class="track"><div class="bar" style="width:0;background:#D9D9D9"></div></div><em>0</em></div>
+    </div>
+  </div>
+  <table>
+    <tr>
+      <th></th>
+      <th class="num">54</th>
+      <th class="num">57</th>
+      <th class="num">A31</th>
+    </tr>
+    <tr><td>OET</td><td class="num">46</td><td class="num">160</td><td class="num">206</td></tr>
+    <tr><td>dont remblai</td><td class="num">25</td><td class="num">84</td><td class="num">109</td></tr>
+    <tr><td>dont déblai</td><td class="num">12</td><td class="num">69</td><td class="num">81</td></tr>
+    <tr><td>dont mixte</td><td class="num">9</td><td class="num">7</td><td class="num">16</td></tr>
+    <tr><td>Ponts</td><td class="num">23</td><td class="num">109</td><td class="num">132</td></tr>
+    <tr><td>Rasant</td><td class="num">6</td><td class="num">34</td><td class="num">40</td></tr>
+    <tr><td>Longueur OET</td><td class="num">21 km</td><td class="num">44 km</td><td class="num">65 km</td></tr>
+    <tr><td>Longueur médiane d'un OET</td><td class="num">244 m</td><td class="num">191 m</td><td class="num"></td></tr>
+    <tr><td>H max médiane remblai</td><td class="num">6,0 m</td><td class="num">5,0 m</td><td class="num"></td></tr>
+    <tr><td>H max médiane déblai</td><td class="num">4,8 m</td><td class="num">6,5 m</td><td class="num"></td></tr>
+  </table>
+  <h2 style="margin-top:28px">Paliers de hauteur (H max)</h2>
+  <p class="why">Remblai : H positif. Déblai : même paliers, signe moins. Mixte : H max du tronçon (valeur absolue). Moins de 2 m : OET léger sur terrain déjà en pente.</p>
+  <p><b>54</b></p>
+  <table>
+    <tr>
+      <th></th>
+      <th class="num">&lt; 2 m</th>
+      <th class="num">2 a 3</th>
+      <th class="num">3 a 5</th>
+      <th class="num">5 a 10</th>
+      <th class="num">10 a 15</th>
+      <th class="num">&gt; 15</th>
+      <th class="num">Total</th>
+    </tr>
+    <tr>
+      <td>remblai (+)</td>
+      <td class="num">1</td><td class="num">0</td><td class="num">9</td>
+      <td class="num">12</td><td class="num">3</td><td class="num">0</td><td class="num">25</td>
+    </tr>
+    <tr>
+      <td>déblai (-)</td>
+      <td class="num">0</td><td class="num">2</td><td class="num">5</td>
+      <td class="num">5</td><td class="num">0</td><td class="num">0</td><td class="num">12</td>
+    </tr>
+    <tr>
+      <td>mixte</td>
+      <td class="num">0</td><td class="num">0</td><td class="num">2</td>
+      <td class="num">6</td><td class="num">1</td><td class="num">0</td><td class="num">9</td>
+    </tr>
+  </table>
+  <p style="margin-top:8px;font-size:14px;color:#5a6570">Déblai lu avec le signe moins : 2 OET entre -3 et -2 m, 5 entre -5 et -3 m, 5 entre -10 et -5 m.</p>
+  <p style="margin-top:16px"><b>57</b></p>
+  <table>
+    <tr>
+      <th></th>
+      <th class="num">&lt; 2 m</th>
+      <th class="num">2 a 3</th>
+      <th class="num">3 a 5</th>
+      <th class="num">5 a 10</th>
+      <th class="num">10 a 15</th>
+      <th class="num">&gt; 15</th>
+      <th class="num">Total</th>
+    </tr>
+    <tr>
+      <td>remblai (+)</td>
+      <td class="num">1</td><td class="num">13</td><td class="num">28</td>
+      <td class="num">39</td><td class="num">3</td><td class="num">0</td><td class="num">84</td>
+    </tr>
+    <tr>
+      <td>déblai (-)</td>
+      <td class="num">1</td><td class="num">4</td><td class="num">15</td>
+      <td class="num">46</td><td class="num">3</td><td class="num">0</td><td class="num">69</td>
+    </tr>
+    <tr>
+      <td>mixte</td>
+      <td class="num">0</td><td class="num">1</td><td class="num">3</td>
+      <td class="num">3</td><td class="num">0</td><td class="num">0</td><td class="num">7</td>
+    </tr>
+  </table>
+  <p style="margin-top:8px;font-size:14px;color:#5a6570">Déblai : 4 entre -3 et -2 m, 15 entre -5 et -3 m, 46 entre -10 et -5 m, 3 entre -15 et -10 m.</p>
+  <p style="margin-top:16px"><b>A31 (54 + 57)</b></p>
+  <table>
+    <tr>
+      <th></th>
+      <th class="num">&lt; 2 m</th>
+      <th class="num">2 a 3</th>
+      <th class="num">3 a 5</th>
+      <th class="num">5 a 10</th>
+      <th class="num">10 a 15</th>
+      <th class="num">&gt; 15</th>
+      <th class="num">Total</th>
+    </tr>
+    <tr>
+      <td>remblai (+)</td>
+      <td class="num">2</td><td class="num">13</td><td class="num">37</td>
+      <td class="num">51</td><td class="num">6</td><td class="num">0</td><td class="num">109</td>
+    </tr>
+    <tr>
+      <td>déblai (-)</td>
+      <td class="num">1</td><td class="num">6</td><td class="num">20</td>
+      <td class="num">51</td><td class="num">3</td><td class="num">0</td><td class="num">81</td>
+    </tr>
+    <tr>
+      <td>mixte</td>
+      <td class="num">0</td><td class="num">1</td><td class="num">5</td>
+      <td class="num">9</td><td class="num">1</td><td class="num">0</td><td class="num">16</td>
+    </tr>
+  </table>
+  <p style="margin-top:14px;color:#5a6570;font-size:14px">Source : inventaire opérationnel v10 (une ligne = une section D+G). Aucun OET au-dessus de 15 m. Le 57 a plus de ponts (traversées urbaines et échangeurs). Le 54 est plus remblai ; le 57 équilibre remblai et déblai.</p>
+</section>
+</div>
+
+</main>
+<script>
+(function () {
+  var buttons = document.querySelectorAll(".tabs button");
+  buttons.forEach(function (b) {
+    b.onclick = function () {
+      buttons.forEach(function (x) { x.classList.remove("on"); });
+      document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("on"); });
+      b.classList.add("on");
+      document.getElementById(b.getAttribute("data-tab")).classList.add("on");
+      window.scrollTo(0, 0);
+    };
+  });
+})();
+</script>
+</body>
+</html>

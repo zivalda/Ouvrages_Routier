@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 from get_data_functions import get_data, get_mnt
 import pandas as pd
 from shapely.ops import unary_union, linemerge, snap
+from recompute_classification import side_class, combine_side_and_center
+
+
 class ProfileAnalyzer:
     """
     Class to analyze profiles along a route and classify them as remblai, deblai or rasant
@@ -2083,69 +2086,30 @@ class ProfileAnalyzer:
 
             old_profile_type = profile_type
 
-            """
-            if profile_type == "rasant":
+            left_signed_height = None
+            right_signed_height = None
 
-                max_talus = max(
-                    left_height_real or 0,
-                    right_height_real or 0
-                )
+            if left_talus_start is not None and left_talus_end is not None:
 
-                if max_talus >= 2:
+                z1 = self.get_raster_value(perpendicular_line.interpolate(left_talus_start))
+                z2 = self.get_raster_value(perpendicular_line.interpolate(left_talus_end))
 
-                    if hauteur_centre > 0:
+                if z1 is not None and z2 is not None:
+                    left_signed_height = z1 - z2
 
-                        profile_type = "remblai"
+            if right_talus_start is not None and right_talus_end is not None:
 
-                    elif hauteur_centre < 0:
+                z1 = self.get_raster_value(perpendicular_line.interpolate(right_talus_start))
+                z2 = self.get_raster_value(perpendicular_line.interpolate(right_talus_end))
 
-                        profile_type = "deblai"
-            """
-            if profile_type == "rasant":
+                if z1 is not None and z2 is not None:
+                    right_signed_height = z1 - z2
 
-                left_class = "rasant"
-                right_class = "rasant"
-
-                if left_height_real is not None and left_height_real >= 2:
-                    left_class = "remblai"
-
-                elif left_height_real is not None and left_height_real <= -2:
-                    left_class = "deblai"
-
-
-                if right_height_real is not None and right_height_real >= 2:
-                    right_class = "remblai"
-
-                elif right_height_real is not None and right_height_real <= -2:
-                    right_class = "deblai"
-
-
-                if left_class == right_class:
-
-                    profile_type = left_class
-
-                else:
-
-                    profile_type = "mixte"
-                """    
-                if old_profile_type != profile_type:
-
-                    with open(
-                        os.path.join(
-                            self.output_folder,
-                            "debug_reclassement.txt"
-                        ),
-                        "a",
-                        encoding="utf-8"
-                    ) as f:
-
-                        f.write(
-                            f"profile={current_distance} "
-                            f"talus={max_talus:.2f} "
-                            f"centre={hauteur_centre:.2f} "
-                            f"{old_profile_type}->{profile_type}\n"
-                        )
-                """
+            profile_type = combine_side_and_center(
+                old_profile_type,
+                side_class(left_signed_height),
+                side_class(right_signed_height),
+            )
                 
             if calculation_points:
                 all_calculation_points.extend(calculation_points)
